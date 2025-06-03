@@ -200,4 +200,4 @@ class OrderBook {
         void clear();
 };
 
-} // namespace matching_engine
+}

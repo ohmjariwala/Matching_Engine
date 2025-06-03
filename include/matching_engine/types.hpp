@@ -18,8 +18,7 @@ using OrderId = uint64_t;
 
 /**
  * @brief Price representation
- * 
- * Using double for simplicity. In production systems, you might want to use fixed-point arithmetic or a decimal library to avoid floating-point precision issues.
+ * Using double for simplicity assuming prices are not overly precise
  */
 using Price = double;
 
@@ -42,7 +41,6 @@ using Symbol = std::string;
 
 
 
-// Enumerations
 
 /**
  * @brief Order side enumeration
@@ -93,8 +91,6 @@ enum class TradeSide : uint8_t {
 
 
 // Constants
-
-
 /**
  * @brief Invalid/null order ID constant
  */
@@ -138,7 +134,7 @@ constexpr Price MARKET_PRICE = 0.0;
  * @param side The order side to convert
  * @return String representation of the order side
  */
-constexpr const char* toString(OrderSide side) noexcept {
+constexpr const char* toString(OrderSide side) noexcept { //constexpr is a compile-time constant expression
     switch (side) {
         case OrderSide::BUY:  return "BUY";
         case OrderSide::SELL: return "SELL";
@@ -151,7 +147,7 @@ constexpr const char* toString(OrderSide side) noexcept {
  * @param type The order type to convert
  * @return String representation of the order type
  */
-constexpr const char* toString(OrderType type) noexcept {
+constexpr const char* toString(OrderType type) noexcept { //constexpr is a compile-time constant expression
     switch (type) {
         case OrderType::MARKET: return "MARKET";
         case OrderType::LIMIT:  return "LIMIT";
@@ -164,7 +160,7 @@ constexpr const char* toString(OrderType type) noexcept {
  * @param status The order status to convert
  * @return String representation of the order status
  */
-constexpr const char* toString(OrderStatus status) noexcept {
+constexpr const char* toString(OrderStatus status) noexcept { //constexpr is a compile-time constant expression
     switch (status) {
         case OrderStatus::PENDING:         return "PENDING";
         case OrderStatus::ACTIVE:          return "ACTIVE";
@@ -216,4 +212,4 @@ constexpr bool isValidQuantity(Quantity quantity) noexcept {
     return quantity >= MIN_QUANTITY && quantity <= MAX_QUANTITY;
 }
 
-} // namespace matching_engine
+}

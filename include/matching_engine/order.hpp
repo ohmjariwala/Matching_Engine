@@ -136,7 +136,7 @@ class Order {
      */
     bool hasHigherPriorityThan(const Order& other) const noexcept;
 
-    // String representation for debugging
+    // String representation for debugging (could be moved to implementation file later)
     std::string toString() const;
 };
 
@@ -147,5 +147,5 @@ std::ostream& operator<<(std::ostream& os, const Order& order);
 bool operator==(const Order& lhs, const Order& rhs) noexcept;
 bool operator!=(const Order& lhs, const Order& rhs) noexcept;
 
-} // namespace matching_engine
+}
 
