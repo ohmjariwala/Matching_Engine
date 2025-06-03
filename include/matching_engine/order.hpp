@@ -1,6 +1,6 @@
 #pragma once // prevent multiple inclusions
 
-#include "types.hpp"
+#include <matching_engine/types.hpp>
 #include <string> // for std::string
 #include <chrono> // for time-related operations
 #include <ostream> // for output stream
@@ -111,14 +111,8 @@ class Order {
      * @return Actual quantity filled (may be less than requested)
      * @throws std::invalid_argument if fill_quantity > remaining_quantity_
      */
-    Quantity fill(Quantity fill_quantity) {
-        if (fill_quantity > remaining_quantity_) {
-            throw std::invalid_argument("Fill quantity exceeds remaining quantity");
-        }
-        remaining_quantity_ -= fill_quantity;
-        return fill_quantity;
-    }
-        
+    Quantity fill(Quantity fill_quantity);
+
     /**
      * @brief Check if this order can match with another order
      * 
@@ -129,27 +123,7 @@ class Order {
      * @param other The other order to check against for matching
      * @return True if orders can match, false otherwise
      */
-    bool canMatchWith(const Order& other) const noexcept {
-        // Must be same symbol
-        if (symbol_ != other.symbol_) return false;
-        
-        // Must be opposite sides
-        if (side_ == other.side_) return false;
-        
-        // Market orders can always match (if symbol and side are compatible)
-        if (isMarketOrder() || other.isMarketOrder()) return true;
-        
-        // For limit orders, check price compatibility
-        if (isBuyOrder()) {
-            // This is a buy order, other is a sell order
-            // Buy price must be >= sell price
-            return price_ >= other.price_;
-        } else {
-            // This is a sell order, other is a buy order  
-            // Sell price must be <= buy price
-            return price_ <= other.price_;
-        }
-    }
+    bool canMatchWith(const Order& other) const noexcept;
 
     /**
      * @brief Compare orders for priority in order book (price-time priority)
@@ -160,22 +134,7 @@ class Order {
      * @param other Order to compare with
      * @return true if this order has higher priority
      */
-    bool hasHigherPriorityThan(const Order& other) const noexcept {
-        if (symbol_ != other.symbol_) return false; //must be same symbol
-        if (side_ != other.side_) return false; //must be opposite sides
-
-        if (isBuyOrder()) {
-            if (price_ != other.price_) {
-                return price_ > other.price_;
-            }
-            return timestamp_ < other.timestamp_;
-        } else { //sell order
-            if (price_ != other.price_) {
-                return price_ < other.price_;
-            }
-            return timestamp_ < other.timestamp_;
-        }
-    }
+    bool hasHigherPriorityThan(const Order& other) const noexcept;
 
     // String representation for debugging
     std::string toString() const;
