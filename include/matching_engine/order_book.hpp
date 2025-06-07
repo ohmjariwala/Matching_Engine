@@ -90,6 +90,26 @@ class OrderBook {
          * @return Unique trade identifier
          */
         TradeId generateTradeId() { return ++next_trade_id_; }
+        
+        /**
+         * @brief Create a Trade object from two matching orders
+         * @param buy_order The buy order
+         * @param sell_order The sell order  
+         * @param execution_price The price at which trade executes
+         * @param quantity The quantity traded
+         * @return Trade object
+         */
+        Trade createTrade(const Order& buy_order, const Order& sell_order, 
+                         Price execution_price, Quantity quantity);
+        
+        /**
+         * @brief Determine execution price for a trade
+         * @param aggressive_order The incoming order
+         * @param passive_order The order already in the book
+         * @return Execution price (passive order gets priority)
+         */
+        Price determineExecutionPrice(const Order& aggressive_order, 
+                                     const Order& passive_order);
 
     public:
         /**
@@ -152,7 +172,7 @@ class OrderBook {
          * @brief Check if the order book is empty
          * @return true if no orders exist on either side
          */
-        bool isOrderBookEmpty() const { return bids_.empty() && asks_.empty(); } //returns true if no orders exist on either side
+        bool isEmpty() const { return bids_.empty() && asks_.empty(); }
 
         /**
          * @brief Get total number of orders in the book
@@ -165,13 +185,13 @@ class OrderBook {
          * @brief Get number of price levels on bid side
          * @return Number of different bid prices
          */
-        size_t getBidLevels() const { return bids_.size(); }
+        size_t getBidLevelCount() const { return bids_.size(); }
         
         /**
          * @brief Get number of price levels on ask side
          * @return Number of different ask prices
          */
-        size_t getAskLevels() const { return asks_.size(); }
+        size_t getAskLevelCount() const { return asks_.size(); }
         
         /**
          * @brief Get order book state as string (for debugging)
