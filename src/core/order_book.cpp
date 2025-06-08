@@ -6,7 +6,7 @@
 namespace matching_engine {
 
 // =============================================================================
-// Public Interface Methods
+// Public Methods
 // =============================================================================
 
 std::vector<Trade> OrderBook::addOrder(Order order) {
@@ -152,7 +152,7 @@ std::string OrderBook::toString(size_t max_levels) const {
             total_qty += temp_queue.front().getRemainingQuantity();
             temp_queue.pop();
         }
-        oss << "  ASK " << std::fixed << std::setprecision(2) << price 
+        oss << "  ASK " << std::fixed << std::setprecision(3) << price 
             << " [" << total_qty << " qty, " << queue.size() << " orders]" << std::endl;
         ask_count++;
     }
@@ -160,7 +160,7 @@ std::string OrderBook::toString(size_t max_levels) const {
     // Display spread
     auto spread = getSpread();
     if (spread) {
-        oss << "SPREAD: " << std::fixed << std::setprecision(2) << *spread << std::endl;
+        oss << "SPREAD: " << std::fixed << std::setprecision(3) << *spread << std::endl;
     } else {
         oss << "SPREAD: N/A" << std::endl;
     }
@@ -176,7 +176,7 @@ std::string OrderBook::toString(size_t max_levels) const {
             total_qty += temp_queue.front().getRemainingQuantity();
             temp_queue.pop();
         }
-        oss << "  BID " << std::fixed << std::setprecision(2) << price 
+        oss << "  BID " << std::fixed << std::setprecision(3) << price 
             << " [" << total_qty << " qty, " << queue.size() << " orders]" << std::endl;
         bid_count++;
     }
@@ -239,77 +239,237 @@ void OrderBook::clear() {
 std::vector<Trade> OrderBook::executeMarketOrder(Order& market_order) {
     std::vector<Trade> trades;
     
-    // TODO: Execute market order against best available prices
-    // 1. If buy market order -> match against asks (lowest prices first)
-    // 2. If sell market order -> match against bids (highest prices first)
-    // 3. Keep matching until order is filled or no more liquidity
-    
-    // ALGORITHM HINT:
-    // while (market_order.getRemainingQuantity() > 0 && !opposite_side_empty) {
-    //     auto& best_price_level = get_best_opposite_side_queue();
-    //     auto& best_order = best_price_level.front();
-    //     
-    //     // Calculate trade quantity (min of remaining quantities)
-    //     // Create trade at best_order's price
-    //     // Fill both orders
-    //     // Remove fully filled orders from queue
-    //     // If queue becomes empty, remove price level
-    // }
+    // Market buy orders match against asks (lowest prices first)
+    // Market sell orders match against bids (highest prices first)
+    if (market_order.isBuyOrder()) {
+        // Match against asks - lowest prices first
+        while (market_order.getRemainingQuantity() > 0 && !asks_.empty()) { //while the market order has remaining quantity and there are asks
+            auto& best_price_level = asks_.begin()->second;
+            if (best_price_level.empty()) { //if the best price level is empty
+                asks_.erase(asks_.begin()); //remove the best price level
+                continue;
+            }
+            
+            Order& best_order = best_price_level.front();
+            Price execution_price = determineExecutionPrice(market_order, best_order);
+            
+            // Calculate trade quantity (minimum of remaining quantities)
+            Quantity trade_qty = std::min(market_order.getRemainingQuantity(),
+                                        best_order.getRemainingQuantity()); //get the minimum of the remaining quantities
+            
+            // Create and store trade
+            Trade trade = createTrade(market_order, best_order, execution_price, trade_qty);
+            trades.push_back(trade); //add the trade to the trades vector
+            
+            // Fill both orders
+            market_order.fill(trade_qty);
+            best_order.fill(trade_qty);
+            
+            // Remove fully filled order from book
+            if (best_order.isFullyFilled()) {
+                order_locations_.erase(best_order.getId());
+                best_price_level.pop();
+                
+                // Remove empty price level
+                if (best_price_level.empty()) {
+                    asks_.erase(asks_.begin());
+                }
+            }
+        }
+    } else {
+        // Market sell order - match against bids (highest prices first)
+        while (market_order.getRemainingQuantity() > 0 && !bids_.empty()) {
+            auto& best_price_level = bids_.begin()->second;
+            if (best_price_level.empty()) { //if the best price level is empty
+                bids_.erase(bids_.begin()); //remove the best price level
+                continue;
+            }
+            
+            Order& best_order = best_price_level.front();
+            Price execution_price = determineExecutionPrice(market_order, best_order);
+            
+            // Calculate trade quantity (minimum of remaining quantities)
+            Quantity trade_qty = std::min(market_order.getRemainingQuantity(),
+                                        best_order.getRemainingQuantity());
+            
+            // Create and store trade
+            Trade trade = createTrade(best_order, market_order, execution_price, trade_qty);
+            trades.push_back(trade); //add the trade to the trades vector
+            
+            // Fill both orders
+            market_order.fill(trade_qty);
+            best_order.fill(trade_qty);
+            
+            // Remove fully filled order from book
+            if (best_order.isFullyFilled()) {
+                order_locations_.erase(best_order.getId());
+                best_price_level.pop();
+                
+                // Remove empty price level
+                if (best_price_level.empty()) {
+                    bids_.erase(bids_.begin());
+                }
+            }
+        }
+    }
     
     return trades;
 }
 
+
 std::vector<Trade> OrderBook::matchLimitOrder(Order& limit_order) {
     std::vector<Trade> trades;
     
-    // TODO: Try to match limit order against existing orders
-    // 1. Check if limit order can match with best price on opposite side
-    // 2. If yes, execute trades (similar to market order logic)
-    // 3. Stop when no more matches possible or order fully filled
-    
-    // ALGORITHM HINT:
-    // while (limit_order.getRemainingQuantity() > 0) {
-    //     auto best_opposite = get_best_opposite_price();
-    //     if (!best_opposite || !limit_order.canMatchWith(best_opposite_order)) {
-    //         break; // No more matches possible
-    //     }
-    //     
-    //     // Execute trade (similar to market order logic)
-    // }
+    // Limit buy orders match against asks if the ask price <= limit price
+    // Limit sell orders match against bids if the bid price >= limit price
+    if (limit_order.isBuyOrder()) {
+        // Match against asks - check if ask price <= limit price
+        while (limit_order.getRemainingQuantity() > 0 && !asks_.empty()) { //while the limit order has remaining quantity and there are asks
+            auto& best_price_level = asks_.begin()->second;
+            if (best_price_level.empty()) { //if the best price level is empty
+                asks_.erase(asks_.begin()); //remove the best price level
+                continue;
+            }
+            
+            Order& best_ask = best_price_level.front();
+            
+            // Check if limit order can match with this ask
+            if (!limit_order.canMatchWith(best_ask)) {
+                break; // No more matches possible at this price or better
+            }
+            
+            Price execution_price = determineExecutionPrice(limit_order, best_ask);
+            
+            // Calculate trade quantity (minimum of remaining quantities)
+            Quantity trade_qty = std::min(limit_order.getRemainingQuantity(), 
+                                        best_ask.getRemainingQuantity());
+            
+            // Create and store trade
+            Trade trade = createTrade(limit_order, best_ask, execution_price, trade_qty);
+            trades.push_back(trade);
+            
+            // Fill both orders
+            limit_order.fill(trade_qty);
+            best_ask.fill(trade_qty);
+            
+            // Remove fully filled order from book
+            if (best_ask.isFullyFilled()) {
+                order_locations_.erase(best_ask.getId());
+                best_price_level.pop();
+                
+                // Remove empty price level
+                if (best_price_level.empty()) {
+                    asks_.erase(asks_.begin());
+                }
+            }
+        }
+    } else {
+        // Limit sell order - match against bids if bid price >= limit price
+        while (limit_order.getRemainingQuantity() > 0 && !bids_.empty()) {
+            auto& best_price_level = bids_.begin()->second;
+            if (best_price_level.empty()) { //if the best price level is empty
+                bids_.erase(bids_.begin()); //remove the best price level
+                continue;
+            }
+            
+            Order& best_bid = best_price_level.front();
+            
+            // Check if limit order can match with this bid
+            if (!limit_order.canMatchWith(best_bid)) {
+                break; // No more matches possible at this price or better
+            }
+            
+            Price execution_price = determineExecutionPrice(limit_order, best_bid);
+            
+            // Calculate trade quantity (minimum of remaining quantities)
+            Quantity trade_qty = std::min(limit_order.getRemainingQuantity(), 
+                                        best_bid.getRemainingQuantity());
+            
+            // Create and store trade
+            Trade trade = createTrade(best_bid, limit_order, execution_price, trade_qty);
+            trades.push_back(trade);
+            
+            // Fill both orders
+            limit_order.fill(trade_qty);
+            best_bid.fill(trade_qty);
+            
+            // Remove fully filled order from book
+            if (best_bid.isFullyFilled()) {
+                order_locations_.erase(best_bid.getId());
+                best_price_level.pop();
+                
+                // Remove empty price level
+                if (best_price_level.empty()) {
+                    bids_.erase(bids_.begin());
+                }
+            }
+        }
+    }
     
     return trades;
 }
 
 void OrderBook::addToBook(const Order& order) {
-    // TODO: Add order to appropriate price level
-    // 1. Determine if it's a bid or ask
-    // 2. Add to appropriate map (bids_ or asks_)
-    // 3. Add to order_locations_ for fast lookup
+    // Add order to appropriate price level based on side
+    if (order.isBuyOrder()) {
+        bids_[order.getPrice()].push(order);
+    } else {
+        asks_[order.getPrice()].push(order);
+    }
     
-    // HINT: 
-    // if (order.isBuyOrder()) {
-    //     bids_[order.getPrice()].push(order);
-    // } else {
-    //     asks_[order.getPrice()].push(order);
-    // }
-    // order_locations_[order.getId()] = {order.getPrice(), order.getSide()};
+    // Add to order_locations_ for fast lookup during cancellation
+    order_locations_[order.getId()] = {order.getPrice(), order.getSide()};
 }
 
 bool OrderBook::removeFromPriceLevel(Price price, OrderSide side, OrderId order_id) {
-    // TODO: Remove specific order from a price level
-    // 1. Get the appropriate map (bids_ or asks_)
-    // 2. Find the price level
-    // 3. Search through queue to find order with matching ID
-    // 4. Remove the order (tricky with std::queue!)
+    std::queue<Order>* orders_queue_ptr = nullptr; //pointer to the orders queue
     
-    // CHALLENGE: std::queue doesn't support removal from middle
-    // HINT: You might need to:
-    // - Pop all orders into a temporary container
-    // - Skip the target order
-    // - Push remaining orders back
-    // - Or consider using std::deque instead of std::queue
+    // Get the appropriate queue based on order side
+    if (side == OrderSide::BUY) {
+        auto price_level_it = bids_.find(price); //find the price level iterator
+        if (price_level_it == bids_.end()) {
+            return false; // Price level not found
+        }
+        orders_queue_ptr = &(price_level_it->second);
+    } else {
+        auto price_level_it = asks_.find(price); //find the price level iterator
+        if (price_level_it == asks_.end()) {
+            return false; // Price level not found
+        }
+        orders_queue_ptr = &(price_level_it->second);
+    }
     
-    return false; // Placeholder
+    auto& orders_queue = *orders_queue_ptr; //get the orders queue
+    
+    // Since std::queue doesn't support removal from middle, we need to pop all orders, skip the target, and push the rest back
+
+    
+    std::queue<Order> temp_queue; //temporary queue
+    bool found = false; //flag to check if the order is found
+    
+    while (!orders_queue.empty()) {
+        Order current_order = orders_queue.front();
+        orders_queue.pop();
+        
+        if (current_order.getId() == order_id) {
+            found = true; // Skip this order (don't add to temp_queue)
+        } else {
+            temp_queue.push(current_order); // Keep this order
+        }
+    }
+    
+    orders_queue = std::move(temp_queue); //put the remaining orders back into the orders queue
+    
+    // If the price level is now empty, remove it from the map
+    if (orders_queue.empty()) {
+        if (side == OrderSide::BUY) {
+            bids_.erase(price);
+        } else {
+            asks_.erase(price);
+        }
+    }
+    
+    return found;
 }
 
 // =============================================================================
@@ -317,18 +477,13 @@ bool OrderBook::removeFromPriceLevel(Price price, OrderSide side, OrderId order_
 // =============================================================================
 
 Trade OrderBook::createTrade(const Order& buy_order, const Order& sell_order, Price execution_price, Quantity quantity) {
-    // TODO: Create a Trade object
-    // HINT: Use generateTradeId(), and pass order IDs, price, quantity
-    
+    // Create a Trade object using generateTradeId(), and pass order IDs, price, quantity
     return Trade(generateTradeId(), buy_order.getId(), sell_order.getId(), 
                 execution_price, quantity);
 }
 
 Price OrderBook::determineExecutionPrice(const Order& aggressive_order, const Order& passive_order) {
-    // TODO: Determine execution price
-    // RULE: Passive order (already in book) gets price priority
-    // HINT: Return passive_order.getPrice()
-    
+    // Passive order (already in book) gets price priority
     return passive_order.getPrice();
 }
 
