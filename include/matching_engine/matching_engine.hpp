@@ -156,13 +156,6 @@ private:
     void cleanupEmptyOrderBooks(); //remove empty order books to free memory
     
     /**
-     * @brief Update engine statistics after order processing
-     * @param symbol The symbol that was processed
-     * @param trades_count Number of trades executed
-     */
-    void updateStatistics(const std::string& symbol, size_t trades_count); //update the statistics after order processing
-    
-    /**
      * @brief Broadcast trade to all registered callbacks
      * @param trade The trade to broadcast
      */
