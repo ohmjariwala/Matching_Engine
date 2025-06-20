@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include "order.hpp"
 #include "order_book.hpp"
+#include "matching_engine/trade.hpp"
 #include <unordered_map> //for the order books
 #include <memory> //for the order books
 #include <vector> //for the trades
@@ -187,20 +188,6 @@ public:
      */
     ~MatchingEngine(); //destructor
     
-    // =============================================================================
-    // Move Constructor & Assignment Operator *****REVIEW*****
-    // =============================================================================
-
-    // Disable copy constructor and assignment operator
-    MatchingEngine(const MatchingEngine&) = delete; //delete the copy constructor
-    MatchingEngine& operator=(const MatchingEngine&) = delete; //delete the assignment operator
-    
-    // Enable move constructor and assignment operator
-    MatchingEngine(MatchingEngine&&) = default; //default move constructor
-    MatchingEngine& operator=(MatchingEngine&&) = default; //default move assignment operator
-    
-
-
     // =============================================================================
     // Engine Management
     // =============================================================================

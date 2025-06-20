@@ -7,27 +7,9 @@
 #include <vector> //for trade execution results
 #include <optional> //for optional values
 #include <unordered_map> //for fast order lookup
+#include "matching_engine/trade.hpp"
 
 namespace matching_engine {
-
-/**
- * @brief Represents a single trade execution result
- * 
- * Generated when two orders are matched and executed.
- */
-struct Trade {
-    TradeId trade_id;
-    OrderId buy_order_id;
-    OrderId sell_order_id;
-    Price execution_price;
-    Quantity quantity;
-    std::chrono::high_resolution_clock::time_point timestamp;
-    
-    Trade(TradeId trade_id, OrderId buy_order_id, OrderId sell_order_id, Price execution_price, Quantity quantity)
-        : trade_id(trade_id), buy_order_id(buy_order_id), sell_order_id(sell_order_id), 
-          execution_price(execution_price), quantity(quantity),
-          timestamp(std::chrono::high_resolution_clock::now()) {}
-};
 
 /**
  * @brief Order book class maintaining buy and sell orders with price-time priority
@@ -99,8 +81,7 @@ class OrderBook {
          * @param quantity The quantity traded
          * @return Trade object
          */
-        Trade createTrade(const Order& buy_order, const Order& sell_order, 
-                         Price execution_price, Quantity quantity);
+        Trade createTrade(const Order& buy_order, const Order& sell_order, const std::string& symbol, Price execution_price, Quantity quantity);
         
         /**
          * @brief Determine execution price for a trade

@@ -258,7 +258,7 @@ std::vector<Trade> OrderBook::executeMarketOrder(Order& market_order) {
                                         best_order.getRemainingQuantity()); //get the minimum of the remaining quantities
             
             // Create and store trade
-            Trade trade = createTrade(market_order, best_order, execution_price, trade_qty);
+            Trade trade = createTrade(market_order, best_order, market_order.getSymbol(), execution_price, trade_qty);
             trades.push_back(trade); //add the trade to the trades vector
             
             // Fill both orders
@@ -293,7 +293,7 @@ std::vector<Trade> OrderBook::executeMarketOrder(Order& market_order) {
                                         best_order.getRemainingQuantity());
             
             // Create and store trade
-            Trade trade = createTrade(best_order, market_order, execution_price, trade_qty);
+            Trade trade = createTrade(best_order, market_order, market_order.getSymbol(), execution_price, trade_qty);
             trades.push_back(trade); //add the trade to the trades vector
             
             // Fill both orders
@@ -345,7 +345,7 @@ std::vector<Trade> OrderBook::matchLimitOrder(Order& limit_order) {
                                         best_ask.getRemainingQuantity());
             
             // Create and store trade
-            Trade trade = createTrade(limit_order, best_ask, execution_price, trade_qty);
+            Trade trade = createTrade(limit_order, best_ask, limit_order.getSymbol(), execution_price, trade_qty);
             trades.push_back(trade);
             
             // Fill both orders
@@ -386,7 +386,7 @@ std::vector<Trade> OrderBook::matchLimitOrder(Order& limit_order) {
                                         best_bid.getRemainingQuantity());
             
             // Create and store trade
-            Trade trade = createTrade(best_bid, limit_order, execution_price, trade_qty);
+            Trade trade = createTrade(best_bid, limit_order, limit_order.getSymbol(), execution_price, trade_qty);
             trades.push_back(trade);
             
             // Fill both orders
@@ -476,10 +476,8 @@ bool OrderBook::removeFromPriceLevel(Price price, OrderSide side, OrderId order_
 // Helper Functions for Trade Creation
 // =============================================================================
 
-Trade OrderBook::createTrade(const Order& buy_order, const Order& sell_order, Price execution_price, Quantity quantity) {
-    // Create a Trade object using generateTradeId(), and pass order IDs, price, quantity
-    return Trade(generateTradeId(), buy_order.getId(), sell_order.getId(), 
-                execution_price, quantity);
+Trade OrderBook::createTrade(const Order& buy_order, const Order& sell_order, const std::string& symbol, Price execution_price, Quantity quantity) {
+    return Trade(generateTradeId(), symbol, buy_order.getId(), sell_order.getId(), execution_price, quantity);
 }
 
 Price OrderBook::determineExecutionPrice(const Order& aggressive_order, const Order& passive_order) {
