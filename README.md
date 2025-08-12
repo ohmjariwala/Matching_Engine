@@ -2,9 +2,8 @@
 
 A high-performance, real-time matching engine implemented in C++ supporting market and limit orders with FIFO price-time priority matching algorithms.
 
-## 🚀 Current Status: **COMPLETE SYSTEM** ✅
 
-### ✅ **Completed Components**
+### **Completed Components**
 
 **Core Engine**
 - **`types.hpp`** - Complete type system with strong aliases, enums, validation constants
@@ -18,17 +17,17 @@ A high-performance, real-time matching engine implemented in C++ supporting mark
 - **`client.hpp/cpp`** - Boost.asio TCP client for connecting to the engine
 
 **Key Features Working**
-- ✅ **FIFO Price-Time Priority**: Proper order queue management within price levels
-- ✅ **Market & Limit Orders**: Full support for both order types with immediate execution
-- ✅ **Real-Time Matching**: `executeMarketOrder()` and `matchLimitOrder()` algorithms
-- ✅ **Order Management**: Add, cancel, and modify orders with O(1) lookup
-- ✅ **Trade Generation**: Complete trade execution with proper price priority rules
-- ✅ **Market Data**: Best bid/ask, spread calculation, order book depth
-- ✅ **Multi-Symbol Support**: Independent order books for different trading symbols
-- ✅ **Network Communication**: Client-server architecture with async I/O
-- ✅ **Callbacks & Events**: Real-time trade and order update notifications
+-  **FIFO Price-Time Priority**: Proper order queue management within price levels
+-  **Market & Limit Orders**: Full support for both order types with immediate execution
+-  **Real-Time Matching**: `executeMarketOrder()` and `matchLimitOrder()` algorithms
+-  **Order Management**: Add, cancel, and modify orders with O(1) lookup
+-  **Trade Generation**: Complete trade execution with proper price priority rules
+-  **Market Data**: Best bid/ask, spread calculation, order book depth
+-  **Multi-Symbol Support**: Independent order books for different trading symbols
+-  **Network Communication**: Client-server architecture with async I/O
+-  **Callbacks & Events**: Real-time trade and order update notifications
 
-### 🎯 **System Architecture**
+###  **System Architecture**
 ```
 include/matching_engine/
 ├── types.hpp           # Type system and constants  
@@ -50,7 +49,7 @@ src/network/
 └── client.cpp          # TCP client implementation
 ```
 
-### 🚀 **Usage Example**
+###  **Usage Example**
 ```cpp
 // Start the server
 boost::asio::io_context io_context;
